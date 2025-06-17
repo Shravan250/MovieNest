@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "TMDB API proxy to bypass regional restrictions",
   "main": "main.js",
-  "dependencies": {
-    "node-fetch": "^2.6.12"
-  },
+  "dependencies": {},
   "scripts": {
     "start": "node main.js"
   }

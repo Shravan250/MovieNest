@@ -1,6 +1,5 @@
-const fetch = require("node-fetch");
-
 module.exports = async ({ req, res, log, error }) => {
+  log("Function started, method: " + req.method);
   if (req.method === "OPTIONS") {
     return res.send("", 200, {
       "Access-Control-Allow-Origin": "*",

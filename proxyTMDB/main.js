@@ -33,8 +33,7 @@ module.exports = async ({ req, res, log, error }) => {
     log(`Proxying request to: ${urlObj.toString()}`);
 
     // Use Authorization header from request or environment variable
-    const authHeader =
-      req.headers.authorization || `Bearer ${process.env.TMDB_API_KEY}`;
+    const authHeader = `Bearer ${process.env.TMDB_API_KEY}`;
 
     const response = await fetch(urlObj.toString(), {
       method: req.method,

@@ -1,5 +1,7 @@
 module.exports = async ({ req, res, log, error }) => {
   log("Function started, method: " + req.method);
+  log("Query: " + JSON.stringify(req.query));
+  log("Headers: " + JSON.stringify(req.headers));
   if (req.method === "OPTIONS") {
     return res.send("", 200, {
       "Access-Control-Allow-Origin": "*",

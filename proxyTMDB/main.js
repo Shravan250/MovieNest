@@ -12,9 +12,10 @@ module.exports = async ({ req, res, log, error }) => {
   }
 
   try {
-    const { url: targetUrl, ...params } = req.query || {};
+    // Extract and decode the target URL from the query parameters
+    const { url: rawUrl, ...params } = req.query || {};
 
-    if (!targetUrl || typeof targetUrl !== "string") {
+    if (!rawUrl || typeof rawUrl !== "string") {
       log("Missing or invalid target URL parameter");
       return res.json(
         {
@@ -29,15 +30,33 @@ module.exports = async ({ req, res, log, error }) => {
       );
     }
 
-    let urlObj;
+    let decodedUrl;
     try {
-      urlObj = new URL(targetUrl);
+      decodedUrl = decodeURIComponent(rawUrl);
     } catch (err) {
-      log("Invalid URL: " + targetUrl);
+      log("Failed to decode URL: " + rawUrl);
       return res.json(
         {
           success: false,
-          error: "Invalid URL: " + targetUrl,
+          error: "Failed to decode URL parameter",
+        },
+        400,
+        {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json",
+        }
+      );
+    }
+
+    let urlObj;
+    try {
+      urlObj = new URL(decodedUrl);
+    } catch (err) {
+      log("Invalid URL after decoding: " + decodedUrl);
+      return res.json(
+        {
+          success: false,
+          error: "Invalid URL parameter",
         },
         400,
         {

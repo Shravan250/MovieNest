@@ -1,8 +1,9 @@
-module.exports = async ({ req, res, log, error }) => {
-  log("Function started, method: " + req.method);
-  log("Query: " + JSON.stringify(req.query));
-  log("Headers: " + JSON.stringify(req.headers));
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Content-Type": "application/json",
+};
 
+module.exports = async ({ req, res, log, error }) => {
   if (req.method === "OPTIONS") {
     return res.send("", 200, {
       "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,6 @@ module.exports = async ({ req, res, log, error }) => {
   }
 
   try {
-    // Extract and decode the target URL from the query parameters
     const { url: rawUrl, ...params } = req.query || {};
 
     if (!rawUrl || typeof rawUrl !== "string") {
@@ -23,10 +23,7 @@ module.exports = async ({ req, res, log, error }) => {
           error: "Missing or invalid target URL parameter",
         },
         400,
-        {
-          "Access-Control-Allow-Origin": "*",
-          "Content-Type": "application/json",
-        }
+        CORS_HEADERS
       );
     }
 
@@ -41,10 +38,7 @@ module.exports = async ({ req, res, log, error }) => {
           error: "Failed to decode URL parameter",
         },
         400,
-        {
-          "Access-Control-Allow-Origin": "*",
-          "Content-Type": "application/json",
-        }
+        CORS_HEADERS
       );
     }
 
@@ -59,10 +53,7 @@ module.exports = async ({ req, res, log, error }) => {
           error: "Invalid URL parameter",
         },
         400,
-        {
-          "Access-Control-Allow-Origin": "*",
-          "Content-Type": "application/json",
-        }
+        CORS_HEADERS
       );
     }
 
@@ -106,10 +97,7 @@ module.exports = async ({ req, res, log, error }) => {
         details: err.message,
       },
       500,
-      {
-        "Access-Control-Allow-Origin": "*",
-        "Content-Type": "application/json",
-      }
+      CORS_HEADERS
     );
   }
 };

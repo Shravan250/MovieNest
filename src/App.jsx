@@ -77,19 +77,14 @@ const App = () => {
         ? `${API_BASE_URL}/search/movie`
         : `${API_BASE_URL}/discover/movie`;
 
+      // Don't encode query, let URLSearchParams do it!
       const queryParams = new URLSearchParams({
         url: targetEndpoint,
-        ...(query
-          ? { query: encodeURIComponent(query) }
-          : { sort_by: "popularity.desc" }),
+        ...(query ? { query } : { sort_by: "popularity.desc" }),
       });
 
-      const response = await fetch(`${PROXY_URL}?${queryParams.toString()}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // No headers needed for GET
+      const response = await fetch(`${PROXY_URL}?${queryParams.toString()}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch movies through proxy");

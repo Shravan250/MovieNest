@@ -14,6 +14,8 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [trendingMovies, setTrendingMovies] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
   // Use debounce to limit the rate of API calls and prevent API overload
   // waits for 500 ms before updating the searchTerm state thus limiting the api requests
@@ -25,7 +27,7 @@ const App = () => {
     [searchTerm]
   );
 
-  const fetchMovies = async (query = "") => {
+  const fetchMovies = async (query = "", pageNum = 1) => {
     setLoading(true);
     setErrorMessage(null);
 
@@ -39,6 +41,7 @@ const App = () => {
       const queryParams = new URLSearchParams({
         url: targetEndpoint,
         ...(query ? { query } : { sort_by: "popularity.desc" }),
+        page: pageNum,
       });
 
       // No headers needed for GET
@@ -58,7 +61,11 @@ const App = () => {
         return;
       }
 
-      setMovieList(data.results || []);
+      setMovieList((prev) =>
+        pageNum === 1 ? data.results : [...prev, ...data.results]
+      );
+
+      setHasMore(data.page < data.total_pages);
 
       if (query && data.results.length > 0) {
         updateSearchCount(query, data.results[0]);
@@ -81,12 +88,45 @@ const App = () => {
   };
 
   useEffect(() => {
-    fetchMovies(debouncedSearchTerm);
+    setPage(1);
+    fetchMovies(debouncedSearchTerm, 1);
   }, [debouncedSearchTerm]);
+
+  useEffect(() => {
+    if (page === 1) return;
+    fetchMovies(debouncedSearchTerm, page);
+  }, [page]);
 
   useEffect(() => {
     fetchTrendingMovies();
   }, []);
+
+  useEffect(() => {
+    if (!hasMore || loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // entries[0] represents our sentinel element
+        if (entries[0].isIntersecting) {
+          setPage((prev) => prev + 1);
+        }
+      },
+      { threshold: 1.0 } //fire when sentioent element is 100% visible
+    );
+
+    const target = document.querySelector("#scroll-sentinel");
+
+    if (target) {
+      observer.observe(target);
+    }
+
+    //cleanup
+    return () => {
+      if (target) {
+        observer.unobserve(target);
+      }
+    };
+  }, [hasMore, loading]);
 
   return (
     <main>
@@ -120,16 +160,18 @@ const App = () => {
           <h2 className="text-white text-2xl font-bold mt-[40px]">
             All Movies
           </h2>
-          {loading ? (
-            <Spinner />
-          ) : errorMessage ? (
-            <p className="text-red-500">{errorMessage}</p>
-          ) : (
-            <ul>
-              {movieList.map((movie) => (
-                <MovieCard key={movie.id} movie={movie} />
-              ))}
-            </ul>
+
+          {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+
+          <ul>
+            {movieList.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
+          </ul>
+
+          {loading && <Spinner />}
+          {!loading && hasMore && (
+            <div id="scroll-sentinel" style={{ height: "1px" }} />
           )}
         </section>
       </div>

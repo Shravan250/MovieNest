@@ -4,6 +4,7 @@ import Spinner from "./components/Spinner";
 import MovieCard from "./components/MovieCard";
 import { useDebounce } from "react-use";
 import { getTrendingMovies, updateSearchCount } from "../appwrite";
+import VirtualizedMovieGrid from "./components/VirtualizedMovieGrid";
 
 const API_BASE_URL = "https://api.themoviedb.org/3";
 
@@ -101,32 +102,33 @@ const App = () => {
     fetchTrendingMovies();
   }, []);
 
-  useEffect(() => {
-    if (!hasMore || loading) return;
+  //discarded since onItemsRendered() does the sam thing but efficiently
+  // useEffect(() => {
+  //   if (!hasMore || loading) return;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        // entries[0] represents our sentinel element
-        if (entries[0].isIntersecting) {
-          setPage((prev) => prev + 1);
-        }
-      },
-      { threshold: 1.0 } //fire when sentioent element is 100% visible
-    );
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       // entries[0] represents our sentinel element
+  //       if (entries[0].isIntersecting) {
+  //         setPage((prev) => prev + 1);
+  //       }
+  //     },
+  //     { threshold: 1.0 } //fire when sentioent element is 100% visible
+  //   );
 
-    const target = document.querySelector("#scroll-sentinel");
+  //   const target = document.querySelector("#scroll-sentinel");
 
-    if (target) {
-      observer.observe(target);
-    }
+  //   if (target) {
+  //     observer.observe(target);
+  //   }
 
-    //cleanup
-    return () => {
-      if (target) {
-        observer.unobserve(target);
-      }
-    };
-  }, [hasMore, loading]);
+  //   //cleanup
+  //   return () => {
+  //     if (target) {
+  //       observer.unobserve(target);
+  //     }
+  //   };
+  // }, [hasMore, loading]);
 
   return (
     <main>
@@ -163,15 +165,19 @@ const App = () => {
 
           {errorMessage && <p className="text-red-500">{errorMessage}</p>}
 
-          <ul>
-            {movieList.map((movie) => (
-              <MovieCard key={movie.id} movie={movie} />
-            ))}
-          </ul>
+          {!errorMessage && (
+            <VirtualizedMovieGrid
+              movies={movieList}
+              loading={loading}
+              hasMore={hasMore}
+              onLoadMore={() => setPage((prev) => prev + 1)}
+            />
+          )}
 
-          {loading && <Spinner />}
-          {!loading && hasMore && (
-            <div id="scroll-sentinel" style={{ height: "1px" }} />
+          {loading && (
+            <div className="flex justify-center mt-4">
+              <Spinner />
+            </div>
           )}
         </section>
       </div>

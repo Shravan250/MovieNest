@@ -5,8 +5,12 @@ import MovieCard from "./components/MovieCard";
 import { useDebounce } from "react-use";
 import { getTrendingMovies, updateSearchCount } from "../appwrite";
 import VirtualizedMovieGrid from "./components/VirtualizedMovieGrid";
-
-const API_BASE_URL = "https://api.themoviedb.org/3";
+import { getTimeBasedMood } from "./helper/getTimeBasedMood";
+import { moodGenreMapping } from "./helper/moodGenreMapping";
+import {
+  fetchMovies as fetchMoviesAPI,
+  fetchMoviesByGenre as fetchMoviesByGenreAPI,
+} from "./services/movieService";
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -30,49 +34,36 @@ const App = () => {
 
   const fetchMovies = async (query = "", pageNum = 1) => {
     setLoading(true);
-    setErrorMessage(null);
-
     try {
-      const PROXY_URL = "https://68514d480001fa687666.fra.appwrite.run";
-
-      const targetEndpoint = query
-        ? `${API_BASE_URL}/search/movie`
-        : `${API_BASE_URL}/discover/movie`;
-
-      const queryParams = new URLSearchParams({
-        url: targetEndpoint,
-        ...(query ? { query } : { sort_by: "popularity.desc" }),
-        page: pageNum,
-      });
-
-      // No headers needed for GET
-      const response = await fetch(`${PROXY_URL}?${queryParams.toString()}`);
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch movies through proxy");
-      }
-
-      const data = await response.json();
-
-      if (data.Response === "False") {
-        setErrorMessage(
-          data.Error || "Error fetching movies. Please try again later..."
-        );
-        setMovieList([]);
-        return;
-      }
+      const data = await fetchMoviesAPI(query, pageNum);
+      if (data.Response === "False") throw new Error(data.Error);
 
       setMovieList((prev) =>
         pageNum === 1 ? data.results : [...prev, ...data.results]
       );
-
       setHasMore(data.page < data.total_pages);
 
       if (query && data.results.length > 0) {
         updateSearchCount(query, data.results[0]);
       }
     } catch (error) {
-      console.log(error);
+      setErrorMessage("Error fetching movies. Please try again later...");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMoviesByGenre = async (genres, pageNum = 1) => {
+    setLoading(true);
+    try {
+      const data = await fetchMoviesByGenreAPI(genres, pageNum);
+      if (data.Response === "False") throw new Error(data.Error);
+
+      setMovieList((prev) =>
+        pageNum === 1 ? data.results : [...prev, ...data.results]
+      );
+      setHasMore(data.page < data.total_pages);
+    } catch (error) {
       setErrorMessage("Error fetching movies. Please try again later...");
     } finally {
       setLoading(false);
@@ -89,8 +80,16 @@ const App = () => {
   };
 
   useEffect(() => {
-    setPage(1);
-    fetchMovies(debouncedSearchTerm, 1);
+    const mood = getTimeBasedMood();
+    const genres = moodGenreMapping[mood];
+
+    if (debouncedSearchTerm.trim() === "") {
+      setPage(1);
+      fetchMoviesByGenre(genres, 1);
+    } else {
+      setPage(1);
+      fetchMovies(debouncedSearchTerm, 1);
+    }
   }, [debouncedSearchTerm]);
 
   useEffect(() => {
@@ -164,6 +163,18 @@ const App = () => {
           </h2>
 
           {errorMessage && <p className="text-red-500">{errorMessage}</p>}
+
+          {/* {!errorMessage && (
+            <section className="movie-genre">
+              <ul className="flex flex-row py-6 ">
+                {moodMap.map((mood, index) => (
+                  <li className="text-white text-center" key={index}>
+                    <p>{mood}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )} */}
 
           {!errorMessage && (
             <VirtualizedMovieGrid

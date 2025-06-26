@@ -5,12 +5,16 @@ import MovieCard from "./components/MovieCard";
 import { useDebounce } from "react-use";
 import { getTrendingMovies, updateSearchCount } from "../appwrite";
 import VirtualizedMovieGrid from "./components/VirtualizedMovieGrid";
-import { getTimeBasedMood } from "./helper/getTimeBasedMood";
 import { moodGenreMapping } from "./helper/moodGenreMapping";
 import {
   fetchMovies as fetchMoviesAPI,
   fetchMoviesByGenre as fetchMoviesByGenreAPI,
 } from "./services/movieService";
+import { getWeatherCondition } from "./services/fetchWeather";
+import {
+  getMoodFromContext,
+  getTimeLabel,
+} from "./helper/getMoodFromWeatherTime";
 
 const App = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -21,6 +25,7 @@ const App = () => {
   const [trendingMovies, setTrendingMovies] = useState([]);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [location, setLocation] = useState(null);
 
   // Use debounce to limit the rate of API calls and prevent API overload
   // waits for 500 ms before updating the searchTerm state thus limiting the api requests
@@ -79,17 +84,33 @@ const App = () => {
     }
   };
 
-  useEffect(() => {
-    const mood = getTimeBasedMood();
-    const genres = moodGenreMapping[mood];
-
-    if (debouncedSearchTerm.trim() === "") {
-      setPage(1);
-      fetchMoviesByGenre(genres, 1);
-    } else {
-      setPage(1);
-      fetchMovies(debouncedSearchTerm, 1);
+  const fetchWeatherCondition = async () => {
+    try {
+      const weather = await getWeatherCondition(
+        location.latitude,
+        location.longitude
+      );
+      return weather;
+    } catch (e) {
+      console.log(e);
     }
+  };
+
+  useEffect(() => {
+    // const weather = fetchWeatherCondition();
+    // const time = getTimeLabel();
+    // const mood = getMoodFromContext(weather, time);
+    // const genres = moodGenreMapping[mood];
+
+    // if (debouncedSearchTerm.trim() === "") {
+    //   setPage(1);
+    //   fetchMoviesByGenre(genres, 1);
+    // } else {
+    //   setPage(1);
+    //   fetchMovies(debouncedSearchTerm, 1);
+    // }
+    setPage(1);
+    fetchMovies(debouncedSearchTerm, 1);
   }, [debouncedSearchTerm]);
 
   useEffect(() => {
@@ -99,6 +120,35 @@ const App = () => {
 
   useEffect(() => {
     fetchTrendingMovies();
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLocation({ latitude, longitude });
+
+        const weather = await getWeatherCondition(latitude, longitude);
+        const time = getTimeLabel();
+        const mood = getMoodFromContext(weather, time);
+        const genres = moodGenreMapping[mood];
+
+        if (searchTerm.trim() === "") {
+          setPage(1);
+          fetchMoviesByGenre(genres, 1);
+        }
+      },
+      (error) => {
+        console.error("Geolocation error:", error.message);
+        const time = getTimeLabel();
+        const fallbackMood = time;
+        const genres = moodGenreMapping[fallbackMood];
+        fetchMoviesByGenre(genres, 1);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
   }, []);
 
   //discarded since onItemsRendered() does the sam thing but efficiently

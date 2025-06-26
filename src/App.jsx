@@ -5,7 +5,11 @@ import MovieCard from "./components/MovieCard";
 import { useDebounce } from "react-use";
 import { getTrendingMovies, updateSearchCount } from "../appwrite";
 import VirtualizedMovieGrid from "./components/VirtualizedMovieGrid";
-import { moodGenreMapping } from "./helper/moodGenreMapping";
+import {
+  moodGenreMapping,
+  timeEmojiMap,
+  weatherEmojiMap,
+} from "./helper/moodGenreMapping";
 import {
   fetchMovies as fetchMoviesAPI,
   fetchMoviesByGenre as fetchMoviesByGenreAPI,
@@ -26,6 +30,7 @@ const App = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [location, setLocation] = useState(null);
+  const [moodInfo, setMoodInfo] = useState("");
 
   // Use debounce to limit the rate of API calls and prevent API overload
   // waits for 500 ms before updating the searchTerm state thus limiting the api requests
@@ -60,6 +65,7 @@ const App = () => {
 
   const fetchMoviesByGenre = async (genres, pageNum = 1) => {
     setLoading(true);
+    setErrorMessage(null);
     try {
       const data = await fetchMoviesByGenreAPI(genres, pageNum);
       if (data.Response === "False") throw new Error(data.Error);
@@ -84,33 +90,31 @@ const App = () => {
     }
   };
 
-  const fetchWeatherCondition = async () => {
+  const loadFallbackMoodBasedMovies = async () => {
     try {
-      const weather = await getWeatherCondition(
-        location.latitude,
-        location.longitude
+      const time = getTimeLabel();
+      const fallbackMood = time;
+      const genres = moodGenreMapping[fallbackMood];
+
+      if (genres && genres.length > 0) {
+        setPage(1);
+        await fetchMoviesByGenre(genres, 1);
+      } else {
+        throw new Error("No genres found for current mood");
+      }
+    } catch (error) {
+      console.error("Error loading mood-based movies:", error);
+      setErrorMessage(
+        "Error loading recommended movies. Please try searching manually."
       );
-      return weather;
-    } catch (e) {
-      console.log(e);
     }
   };
 
   useEffect(() => {
-    // const weather = fetchWeatherCondition();
-    // const time = getTimeLabel();
-    // const mood = getMoodFromContext(weather, time);
-    // const genres = moodGenreMapping[mood];
-
-    // if (debouncedSearchTerm.trim() === "") {
-    //   setPage(1);
-    //   fetchMoviesByGenre(genres, 1);
-    // } else {
-    //   setPage(1);
-    //   fetchMovies(debouncedSearchTerm, 1);
-    // }
     setPage(1);
-    fetchMovies(debouncedSearchTerm, 1);
+    if (debouncedSearchTerm.trim() !== "") {
+      fetchMovies(debouncedSearchTerm, 1);
+    }
   }, [debouncedSearchTerm]);
 
   useEffect(() => {
@@ -135,13 +139,23 @@ const App = () => {
           setPage(1);
           fetchMoviesByGenre(genres, 1);
         }
+
+        const weatherIcon = weatherEmojiMap[weather] || "🎬";
+        const timeIcon = timeEmojiMap[time] || "🕒";
+
+        setMoodInfo(
+          `Showing ${mood} movies based on your time ${time} ${timeIcon} and weather ${weather} ${weatherIcon} mood`
+        );
       },
       (error) => {
         console.error("Geolocation error:", error.message);
         const time = getTimeLabel();
-        const fallbackMood = time;
+        const fallbackMood = getMoodFromContext(time);
         const genres = moodGenreMapping[fallbackMood];
         fetchMoviesByGenre(genres, 1);
+        setMoodInfo(
+          `Showing ${fallbackMood} movies based on time of day only ⏰`
+        );
       },
       {
         enableHighAccuracy: true,
@@ -151,8 +165,6 @@ const App = () => {
     );
   }, []);
 
-  //discarded since onItemsRendered() does the sam thing but efficiently
-  // useEffect(() => {
   //   if (!hasMore || loading) return;
 
   //   const observer = new IntersectionObserver(
@@ -225,6 +237,9 @@ const App = () => {
               </ul>
             </section>
           )} */}
+          {!errorMessage && moodInfo && (
+            <p className="text-white text-center text-sm py-4">{moodInfo}</p>
+          )}
 
           {!errorMessage && (
             <VirtualizedMovieGrid

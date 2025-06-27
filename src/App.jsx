@@ -150,7 +150,7 @@ const App = () => {
       (error) => {
         console.error("Geolocation error:", error.message);
         const time = getTimeLabel();
-        const fallbackMood = getMoodFromContext(time);
+        const fallbackMood = getMoodFromContext("clear", time);
         const genres = moodGenreMapping[fallbackMood];
         fetchMoviesByGenre(genres, 1);
         setMoodInfo(

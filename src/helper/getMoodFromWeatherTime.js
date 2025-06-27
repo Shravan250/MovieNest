@@ -1,4 +1,4 @@
-export const getMoodFromContext = (weather = "clear", timeMood) => {
+export const getMoodFromContext = (weather, timeMood) => {
   const moodMap = {
     clear: {
       morning: "feelgood",

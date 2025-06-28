@@ -204,7 +204,7 @@ const App = () => {
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         </header>
 
-        {trendingMovies.length > 0 && (
+        {trendingMovies.length > 0 && searchTerm === "" && (
           <section className="trending">
             <h2>Trending Movies</h2>
 
@@ -226,17 +226,6 @@ const App = () => {
 
           {errorMessage && <p className="text-red-500">{errorMessage}</p>}
 
-          {/* {!errorMessage && (
-            <section className="movie-genre">
-              <ul className="flex flex-row py-6 ">
-                {moodMap.map((mood, index) => (
-                  <li className="text-white text-center" key={index}>
-                    <p>{mood}</p>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )} */}
           {!errorMessage && moodInfo && (
             <p className="text-white text-center text-sm py-4">{moodInfo}</p>
           )}
